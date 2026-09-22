@@ -4,6 +4,12 @@
 
 MIT ライセンス（既存の `LICENSE` を維持）。
 
+## 配信形態（固定）
+
+**通常のブラウザで開く単ページ Web アプリ** だけ。状態の薄い永続化は `localStorage`。
+
+入れない: Capacitor / Electron / React Native / Flutter / Tauri / その他のネイティブ・モバイル殻。
+
 ## ローカル起動
 
 [pnpm](https://pnpm.io/) を使う。

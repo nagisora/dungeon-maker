@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "薄いダンジョンメーカー・フォロワー（v0）",
+  "description": "薄いダンジョンメーカー・フォロワー（v0）。ブラウザ単ページのみ。native殻なし。",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
