@@ -1,17 +1,26 @@
 import "./style.css";
 import {
+  MAX_SPAN,
+  PARTS,
   TREASURES,
   canAttract,
   chooseImprove,
   createRun,
   expandCandidates,
+  loseHint,
+  nestSize,
+  openMeta,
   phaseTitle,
   placeExpand,
+  placeMinion,
   placeTrap,
   placeTreasure,
+  selectTreasure,
   startInvade,
   stepInvade,
+  trapKind,
 } from "./game.js";
+import { applyOutcome, catalogParts, catalogTreasures } from "./meta.js";
 import { bump, loadMeta } from "./storage.js";
 
 const app = document.querySelector("#app");
@@ -23,15 +32,46 @@ let invadeTimer = 0;
 
 bootRun();
 
+function closeRun(kind) {
+  if (state.persisted) return;
+  if (kind === "abandon" && state.defensesThisRun === 0 && state.result == null) {
+    state.persisted = true;
+    return;
+  }
+  state.persisted = true;
+  const result =
+    kind === "clear" || state.phase === "clear" || (kind === "abandon" && state.result !== "lose" && state.defensesThisRun > 0)
+      ? "win"
+      : "lose";
+  meta = bump(
+    meta,
+    applyOutcome(meta, {
+      result,
+      defensesThisRun: state.defensesThisRun,
+      usedTreasures: state.usedTreasures,
+      usedParts: state.usedParts,
+      cleared: kind === "clear" || state.phase === "clear",
+    }),
+  );
+}
+
 function bootRun() {
-  state = createRun();
-  meta = bump(meta, { runsStarted: meta.runsStarted + 1 });
+  window.clearTimeout(invadeTimer);
+  state = createRun(meta);
   render();
 }
 
 function retry() {
   window.clearTimeout(invadeTimer);
+  closeRun(state.phase === "clear" ? "clear" : state.result === "lose" ? "lose" : "abandon");
   bootRun();
+}
+
+function showMeta() {
+  window.clearTimeout(invadeTimer);
+  closeRun(state.phase === "clear" ? "clear" : state.result === "lose" ? "lose" : "abandon");
+  openMeta(state);
+  render();
 }
 
 function scheduleInvade() {
@@ -40,14 +80,8 @@ function scheduleInvade() {
   const delay = state.fastForward ? 70 : 480;
   invadeTimer = window.setTimeout(() => {
     stepInvade(state);
-    if (state.phase !== "invade") {
-      if (state.result === "win" || state.phase === "clear") {
-        meta = bump(meta, {
-          defensesWon: meta.defensesWon + 1,
-          v0Cleared: meta.v0Cleared || state.phase === "clear",
-        });
-      }
-    }
+    if (state.phase === "clear") closeRun("clear");
+    else if (state.result === "lose") closeRun("lose");
     render();
     if (state.phase === "invade") scheduleInvade();
   }, delay);
@@ -65,13 +99,27 @@ function onCellClick(x, y, ghost) {
     return;
   }
   if (state.phase === "improve" && state.improveKind === "chip" && !ghost) {
-    placeTrap(state, x, y);
+    placeTrap(state, x, y, "chip");
+    render();
+    return;
+  }
+  if (state.phase === "improve" && state.improveKind === "stall" && !ghost) {
+    placeTrap(state, x, y, "stall");
+    render();
+    return;
+  }
+  if (state.phase === "improve" && state.improveKind === "minion" && !ghost) {
+    placeMinion(state, x, y);
     render();
   }
 }
 
 function attract() {
   if (!startInvade(state)) return;
+  if (!state.runCounted) {
+    state.runCounted = true;
+    meta = bump(meta, { runsStarted: meta.runsStarted + 1 });
+  }
   render();
   scheduleInvade();
 }
@@ -81,9 +129,9 @@ function pickItem(kind) {
   render();
 }
 
-function currentInvaderPos() {
+function currentInvader() {
   if (state.phase !== "invade") return null;
-  return state.invaders[state.invaderIndex]?.pos ?? null;
+  return state.invaders[state.invaderIndex] ?? null;
 }
 
 function boardModel() {
@@ -112,37 +160,85 @@ function boardModel() {
 }
 
 function glyphFor(cell, hasTreasure, hasInvader) {
-  if (hasInvader) return "賊";
-  if (hasTreasure) return "袋";
+  if (hasInvader) return TREASURES[state.treasureId]?.invaderGlyph ?? "賊";
+  if (hasTreasure) return TREASURES[state.treasureId]?.glyph ?? "袋";
   if (!cell) return "＋";
-  if (cell.trap) return "罠";
+  if (cell.minion) return "配";
+  const trap = trapKind(cell);
+  if (trap === "stall") return "止";
+  if (trap === "chip") return "罠";
   if (cell.kind === "core") return "核";
   return "道";
+}
+
+function cellCaption(cell, hasTreasure) {
+  if (hasTreasure) return TREASURES[state.treasureId]?.name ?? "宝";
+  if (!cell) return "拡張";
+  return cellLabelShort(cell);
+}
+
+function cellLabelShort(cell) {
+  if (cell.minion) return "配下";
+  const trap = trapKind(cell);
+  if (trap === "stall") return "足止め";
+  if (trap === "chip") return "削り";
+  return cell.kind === "core" ? "コア" : "通路";
 }
 
 function hintText() {
   switch (state.phase) {
     case "attract":
       return state.treasure
-        ? "宝を置いた。誘引すると盗賊が自動で踏み入る。"
-        : "銅貨袋を選んだまま、マスをクリックして宝を置く。";
+        ? `${TREASURES[state.treasureId].name}を置いた。誘引すると侵入が自動で進む。`
+        : `${TREASURES[state.treasureId].hint} マスをクリックして宝を置く。`;
     case "invade":
-      return "侵入は自動進行。ログを見て処理していく。";
+      return "侵入は自動進行。ログの色で波・削り・足止め・撃退を追える。";
     case "settle":
       return state.result === "lose"
-        ? "失敗しても即リトライ。メタ回数だけ残る。"
-        : "落とし物は1つ。拡張するか、削り罠を置くか。";
+        ? loseHint(state)
+        : "落とし物は1つ。通路・罠・配下から選ぶ。";
     case "improve":
-      return state.improveKind === "expand"
-        ? "コアに接する破線マスをクリックして巣穴を広げる。"
-        : "既存のマスをクリックして削り罠を置く。コアに重ねてもよい。";
+      return improveHint(state.improveKind);
     case "clear":
-      return "v0クリア。魔剣や5×5はこれから。";
+      return "周回クリア。メタに戻るか、即もう一周。";
+    case "meta":
+      return "周回のあいだに解放が残る。ガチャもスタミナもない。";
     default: {
       const _never = state.phase;
       return String(_never);
     }
   }
+}
+
+function improveHint(kind) {
+  switch (kind) {
+    case "expand":
+      return "接する破線マスをクリックして通路を伸ばす。上限はおおよそ 5×5。";
+    case "chip":
+      return "既存のマスをクリックして削り罠を置く。コアに重ねてもよい。";
+    case "stall":
+      return "既存のマスをクリックして足止め罠を置く。";
+    case "minion":
+      return "既存のマスをクリックして配下を置く。罠と重ねられる。";
+    default: {
+      const _never = kind;
+      return String(_never ?? "置くマスをクリック。");
+    }
+  }
+}
+
+function improveButtons() {
+  const canExpand = expandCandidates(state.cells).length > 0;
+  const kinds = state.runUnlocks.parts;
+  return kinds
+    .map((kind) => {
+      const part = PARTS[kind];
+      const disabled = kind === "expand" && !canExpand ? "disabled" : "";
+      const label =
+        kind === "expand" && !canExpand ? "上限まで広がった" : part.name;
+      return `<button class="btn ok" data-act="${kind}" ${disabled}>${label}</button>`;
+    })
+    .join("");
 }
 
 function renderActions() {
@@ -151,6 +247,7 @@ function renderActions() {
       <div class="actions">
         <button class="btn ${canAttract(state) ? "primary" : ""}" data-act="attract" ${canAttract(state) ? "" : "disabled"}>誘引する</button>
         <button class="btn" data-act="retry">最初から</button>
+        <button class="btn" data-act="meta">メタ</button>
       </div>`;
   }
   if (state.phase === "invade") {
@@ -163,16 +260,17 @@ function renderActions() {
   if (state.phase === "settle" && state.result === "win") {
     return `
       <p class="result win">防衛成功 — 落とし物を1つ使う</p>
-      <div class="actions">
-        <button class="btn ok" data-act="expand">巣穴を拡張する</button>
-        <button class="btn ok" data-act="chip">削り罠を置く</button>
-      </div>`;
+      <div class="actions">${improveButtons()}</div>`;
   }
   if (state.phase === "settle" && state.result === "lose") {
     return `
-      <p class="result lose">防衛失敗 — 宝を奪われた</p>
-      <div class="actions">
-        <button class="btn danger" data-act="retry">最初から</button>
+      <div class="lose-box" data-lose>
+        <p class="result lose">防衛失敗 — 宝を奪われた</p>
+        <p class="lose-hint">${loseHint(state)}</p>
+        <div class="actions">
+          <button class="btn danger" data-act="retry">即再挑戦</button>
+          <button class="btn" data-act="meta">メタを見る</button>
+        </div>
       </div>`;
   }
   if (state.phase === "improve") {
@@ -183,27 +281,108 @@ function renderActions() {
   }
   if (state.phase === "clear") {
     return `
-      <p class="result win">v0 クリア</p>
+      <p class="result win">周回クリア</p>
       <div class="actions">
         <button class="btn primary" data-act="retry">もう一周</button>
+        <button class="btn" data-act="meta">メタを見る</button>
       </div>`;
+  }
+  if (state.phase === "meta") {
+    return "";
   }
   return "";
 }
 
+function bindCommonActions() {
+  app.querySelector("[data-act=attract]")?.addEventListener("click", attract);
+  app.querySelector("[data-act=retry]")?.addEventListener("click", retry);
+  app.querySelector("[data-act=meta]")?.addEventListener("click", showMeta);
+  app.querySelector("[data-act=fast]")?.addEventListener("click", () => {
+    state.fastForward = !state.fastForward;
+    render();
+    scheduleInvade();
+  });
+  for (const kind of ["expand", "chip", "stall", "minion"]) {
+    app.querySelector(`[data-act=${kind}]`)?.addEventListener("click", () => pickItem(kind));
+  }
+}
+
+function renderMetaScreen() {
+  const treasures = catalogTreasures(meta)
+    .map(
+      (t) => `
+        <li class="catalog-item ${t.unlocked ? "on" : "off"}">
+          <span class="name">${t.name}</span>
+          <span class="mark">${t.unlocked ? "解放" : "未解放"}</span>
+          <span class="hint">${t.hint}</span>
+        </li>`,
+    )
+    .join("");
+  const parts = catalogParts(meta)
+    .map(
+      (p) => `
+        <li class="catalog-item ${p.unlocked ? "on" : "off"}">
+          <span class="name">${p.name}</span>
+          <span class="mark">${p.unlocked ? "解放" : "未解放"}</span>
+          <span class="hint">${p.hint}</span>
+        </li>`,
+    )
+    .join("");
+
+  app.innerHTML = `
+    <header class="top">
+      <div>
+        <span class="tag">ダンジョンメーカー直球 · v1 / v2</span>
+        <h1>周回のあいだ</h1>
+        <p class="sub">解放は localStorage に残る。ガチャ・スタミナ・マルチはなし。</p>
+      </div>
+      <div class="meta" data-meta>
+        <span>周回 <b>${meta.runsStarted}</b></span>
+        <span>防衛成功 <b>${meta.defensesWon}</b></span>
+        <span>見識 <b>${meta.insight}</b></span>
+        <span>初期拡張 <b>${meta.startingExpand}</b></span>
+      </div>
+    </header>
+    <section class="panel meta-screen" data-phase="meta">
+      <p class="hint">${hintText()}</p>
+      <div class="catalog-grid">
+        <div>
+          <h2>宝図鑑</h2>
+          <ul class="catalog">${treasures}</ul>
+        </div>
+        <div>
+          <h2>パーツ図鑑</h2>
+          <ul class="catalog">${parts}</ul>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" data-act="retry">ランを始める</button>
+      </div>
+    </section>
+  `;
+  bindCommonActions();
+}
+
 function render() {
+  if (state.phase === "meta") {
+    renderMetaScreen();
+    return;
+  }
+
   const board = boardModel();
-  const invPos = currentInvaderPos();
+  const inv = currentInvader();
+  const size = nestSize(state.cells);
   const treasures = Object.values(TREASURES)
     .map((t) => {
       const selected = t.id === state.treasureId;
+      const locked = !state.runUnlocks.treasures.includes(t.id);
       return `
         <button class="treasure" type="button"
-          ${t.locked ? "disabled" : ""}
+          ${locked ? "disabled" : ""}
           aria-pressed="${selected}"
           data-treasure="${t.id}">
           <span class="name">${t.name}</span>
-          <span class="mark">${t.locked ? "v1" : "v0"}</span>
+          <span class="mark">${locked ? "未解放" : t.hint}</span>
         </button>`;
     })
     .join("");
@@ -214,11 +393,13 @@ function render() {
         return `<div class="cell spacer" aria-hidden="true"></div>`;
       }
       const hasTreasure = state.treasure?.x === x && state.treasure?.y === y;
-      const hasInvader = invPos?.x === x && invPos?.y === y;
+      const hasInvader = inv?.pos?.x === x && inv?.pos?.y === y;
+      const trap = trapKind(cell);
       const classes = [
         "cell",
         cell?.kind ?? "",
-        cell?.trap ? "trap" : "",
+        trap ? `trap ${trap}` : "",
+        cell?.minion ? "minion" : "",
         ghost ? "ghost" : "",
         hasTreasure ? "has-treasure" : "",
         hasInvader ? "has-invader" : "",
@@ -228,41 +409,48 @@ function render() {
       const clickable =
         (state.phase === "attract" && cell) ||
         (state.phase === "improve" && state.improveKind === "expand" && ghost) ||
-        (state.phase === "improve" && state.improveKind === "chip" && cell);
-      const label = ghost ? "拡張" : cell?.trap ? "罠" : cell?.kind === "core" ? "コア" : cell ? "通路" : "";
+        (state.phase === "improve" && state.improveKind !== "expand" && cell);
+      const label = ghost ? "拡張" : cell ? cellLabelShort(cell) : "";
       return `
         <button class="${classes}" type="button"
           data-cell="${x},${y}" ${ghost ? "data-ghost=1" : ""}
           ${clickable ? "" : "disabled"}
           aria-label="${x},${y} ${label}">
           <span class="glyph">${glyphFor(cell, hasTreasure, hasInvader)}</span>
-          <span class="label">${hasTreasure ? "銅貨袋" : label}</span>
+          <span class="label">${cellCaption(cell, hasTreasure)}</span>
         </button>`;
     })
     .join("");
 
   const logs =
     state.log.length === 0
-      ? "<li>まだ侵入はない。宝を置いて誘引しよう。</li>"
-      : state.log.map((line) => `<li>${line}</li>`).join("");
+      ? `<li class="tone-note">まだ侵入はない。宝を置いて誘引しよう。</li>`
+      : state.log
+          .map((line) => `<li class="tone-${line.tone}">${line.text}</li>`)
+          .join("");
+
+  const invaderNow = inv
+    ? `<div class="invader-now" data-invader>${inv.name}　残HP <b>${Math.max(0, inv.hp)}</b>/${inv.maxHp}${inv.stalled ? "　足止め中" : ""}</div>`
+    : "";
 
   app.innerHTML = `
     <header class="top">
       <div>
-        <span class="tag">ダンジョンメーカー直球 · v0</span>
+        <span class="tag">ダンジョンメーカー直球 · v1 / v2</span>
         <h1>自分がダンジョン側</h1>
         <p class="sub">宝を置いて侵入を迎える。道中イベントなし。失敗したら即リトライ。</p>
       </div>
       <div class="meta" data-meta>
         <span>周回 <b>${meta.runsStarted}</b></span>
         <span>防衛成功 <b>${meta.defensesWon}</b></span>
-        <span>v0達成 <b>${meta.v0Cleared ? "済" : "未"}</b></span>
+        <span>見識 <b>${meta.insight}</b></span>
+        <span>初期拡張 <b>${meta.startingExpand}</b></span>
       </div>
     </header>
     <div class="layout">
       <section class="panel" data-phase="${state.phase}">
         <div class="phase-row">
-          <h2>巣穴</h2>
+          <h2>巣穴 ${size.w}×${size.h}（${size.count}マス）／上限 ${MAX_SPAN}×${MAX_SPAN}</h2>
           <span class="phase-pill">フェーズ：${phaseTitle(state.phase)} · 第${state.wave}波</span>
         </div>
         <p class="hint">${hintText()}</p>
@@ -272,30 +460,29 @@ function render() {
         </div>
         ${renderActions()}
         <div class="howto">
-          <strong>v0のまわり方</strong>
+          <strong>まわり方</strong>
           <ol>
-            <li>1×1コアに銅貨袋を置いて誘引する（弱い盗賊）。</li>
-            <li>防衛できたら、拡張か削り罠を1つ置く。</li>
-            <li>もう一度誘引する。何も足さないと第2波に宝を奪われる。</li>
+            <li>宝を選んで置き、誘引する。宝の種類で侵入者が変わる。</li>
+            <li>守り切ったら通路・足止め・削り・配下のどれかを1つ置く。巣穴はおよそ 5×5 まで。</li>
+            <li>王冠を守り切るか第6波まで持つと周回クリア。失敗は即再挑戦。解放はメタに残る。</li>
           </ol>
         </div>
       </section>
       <aside class="panel">
         <h2>侵入ログ</h2>
+        ${invaderNow}
         <ul class="log" data-log>${logs}</ul>
       </aside>
     </div>
   `;
 
-  app.querySelector("[data-act=attract]")?.addEventListener("click", attract);
-  app.querySelector("[data-act=retry]")?.addEventListener("click", retry);
-  app.querySelector("[data-act=fast]")?.addEventListener("click", () => {
-    state.fastForward = !state.fastForward;
-    render();
-    scheduleInvade();
+  bindCommonActions();
+  app.querySelectorAll("[data-treasure]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      selectTreasure(state, btn.getAttribute("data-treasure"));
+      render();
+    });
   });
-  app.querySelector("[data-act=expand]")?.addEventListener("click", () => pickItem("expand"));
-  app.querySelector("[data-act=chip]")?.addEventListener("click", () => pickItem("chip"));
   app.querySelectorAll("[data-cell]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const [x, y] = btn.getAttribute("data-cell").split(",").map(Number);

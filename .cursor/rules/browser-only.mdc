@@ -5,7 +5,7 @@ alwaysApply: true
 
 # ブラウザ専用（固定）
 
-このリポジトリの成果物は **通常のブラウザで動く単ページWebアプリ** だけ。永続化は `localStorage`。静的ホスト（Vercel の静的出力など）で足りる。
+このリポジトリの成果物は **通常のブラウザで動く単ページWebアプリ** だけ。永続化は `localStorage`。静的ホスト（Cloudflare Pages の静的出力など）で足りる。
 
 禁止: Capacitor、Electron、React Native、Flutter、Tauri、Cordova、その他のネイティブ／モバイルアプリ殻。
 
