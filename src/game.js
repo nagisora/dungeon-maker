@@ -109,6 +109,7 @@ export function chooseImprove(state, kind) {
     return false;
   }
   state.improveKind = kind;
+  state.treasure = null;
   state.phase = "improve";
   if (kind === "expand") {
     pushLog(state, "拡張の石を使った。コアに接する空マスをクリック。");

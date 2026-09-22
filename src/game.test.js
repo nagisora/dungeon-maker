@@ -88,6 +88,15 @@ test("cannot attract without placing treasure", () => {
   assert.equal(state.phase, "attract");
 });
 
+test("choosing improve clears the previous treasure marker", () => {
+  const state = attractOn(createRun());
+  runInvadeToEnd(state);
+  assert.equal(state.treasure != null, true);
+  chooseImprove(state, "expand");
+  assert.equal(state.treasure, null);
+  assert.equal(state.phase, "improve");
+});
+
 test("trap improve then wave 2 clear", () => {
   const state = attractOn(createRun());
   runInvadeToEnd(state);

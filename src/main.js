@@ -149,7 +149,7 @@ function renderActions() {
   if (state.phase === "attract") {
     return `
       <div class="actions">
-        <button class="btn primary" data-act="attract" ${canAttract(state) ? "" : "disabled"}>誘引する</button>
+        <button class="btn ${canAttract(state) ? "primary" : ""}" data-act="attract" ${canAttract(state) ? "" : "disabled"}>誘引する</button>
         <button class="btn" data-act="retry">最初から</button>
       </div>`;
   }
@@ -210,6 +210,9 @@ function render() {
 
   const tiles = board.tiles
     .map(({ x, y, cell, ghost }) => {
+      if (!cell && !ghost) {
+        return `<div class="cell spacer" aria-hidden="true"></div>`;
+      }
       const hasTreasure = state.treasure?.x === x && state.treasure?.y === y;
       const hasInvader = invPos?.x === x && invPos?.y === y;
       const classes = [
