@@ -9,4 +9,9 @@ alwaysApply: true
 
 禁止: Capacitor、Electron、React Native、Flutter、Tauri、Cordova、その他のネイティブ／モバイルアプリ殻。
 
-v0 のゲーム仕様は変えない。Web SPA のまま続ける。
+**v1/v2 ブラウザ SPA 固定**
+
+- 周回ループ: Attract → Win → Items → Improve → Attract（誘引 → 防衛成功 → 落とし物 → 整備 → 誘引）
+- SPA + `localStorage` のみ
+- ガチャ・スタミナ・マルチは入れない
+- ネイティブ殻は入れない

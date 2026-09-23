@@ -23,7 +23,9 @@ import {
 import { applyOutcome, catalogParts, catalogTreasures } from "./meta.js";
 import { bump, loadMeta } from "./storage.js";
 
+const PAGE_TITLE = "ダンジョンメーカー風フォロワー";
 const app = document.querySelector("#app");
+document.title = PAGE_TITLE;
 
 /** @type {ReturnType<typeof createRun>} */
 let state;
@@ -332,7 +334,7 @@ function renderMetaScreen() {
   app.innerHTML = `
     <header class="top">
       <div>
-        <span class="tag">ダンジョンメーカー直球 · v1 / v2</span>
+        <span class="tag">ダンジョンメーカー風フォロワー · v1 / v2</span>
         <h1>周回のあいだ</h1>
         <p class="sub">解放は localStorage に残る。ガチャ・スタミナ・マルチはなし。</p>
       </div>
@@ -437,7 +439,7 @@ function render() {
   app.innerHTML = `
     <header class="top">
       <div>
-        <span class="tag">ダンジョンメーカー直球 · v1 / v2</span>
+        <span class="tag">ダンジョンメーカー風フォロワー · v1 / v2</span>
         <h1>自分がダンジョン側</h1>
         <p class="sub">宝を置いて侵入を迎える。道中イベントなし。失敗したら即リトライ。</p>
       </div>
