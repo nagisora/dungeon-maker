@@ -1,0 +1,4 @@
+# Cloudflare Pages — 静的 Vite 出力（Functions なし）
+name = "dungeon-maker"
+compatibility_date = "2026-09-22"
+pages_build_output_dir = "dist"

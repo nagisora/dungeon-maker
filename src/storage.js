@@ -1,19 +1,15 @@
-const KEY = "dungeon-maker-v0-meta";
+import { defaultMeta, normalizeMeta } from "./meta.js";
 
-export function defaultMeta() {
-  return {
-    runsStarted: 0,
-    defensesWon: 0,
-    v0Cleared: false,
-  };
-}
+export { defaultMeta };
+
+const KEY = "dungeon-maker-v2-meta";
+const LEGACY_KEY = "dungeon-maker-v0-meta";
 
 export function loadMeta() {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY) ?? localStorage.getItem(LEGACY_KEY);
     if (!raw) return defaultMeta();
-    const parsed = JSON.parse(raw);
-    return { ...defaultMeta(), ...parsed };
+    return normalizeMeta(JSON.parse(raw));
   } catch {
     return defaultMeta();
   }
@@ -24,7 +20,7 @@ export function saveMeta(meta) {
 }
 
 export function bump(meta, patch) {
-  const next = { ...meta, ...patch };
+  const next = normalizeMeta({ ...meta, ...patch });
   saveMeta(next);
   return next;
 }
