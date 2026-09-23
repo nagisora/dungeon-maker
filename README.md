@@ -93,7 +93,7 @@ pnpm test
 
 ### B. GitHub Actions で Direct Upload
 
-ワークフローは `.github/workflows/pages.yml`。シークレットが空なら **テストとビルドだけ走り、デプロイはスキップ**する（トークンを捏造しない）。
+ワークフローは `.github/workflows/pages.yml`。PR ではテストと `pnpm build` だけ。`main` への push でもシークレットが空なら **デプロイはスキップ**する（トークンを捏造しない）。
 
 1. Cloudflare → [API Tokens](https://dash.cloudflare.com/?to=/:account/api-tokens) → **Create Token**
 2. Custom Token。Permissions: **Account** / **Cloudflare Pages** / **Edit**
