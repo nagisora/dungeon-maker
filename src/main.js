@@ -376,13 +376,14 @@ function render() {
     .map((t) => {
       const selected = t.id === state.treasureId;
       const locked = !state.runUnlocks.treasures.includes(t.id);
+      const disabled = locked || state.phase !== "attract";
       return `
         <button class="treasure" type="button"
-          ${locked ? "disabled" : ""}
+          ${disabled ? "disabled" : ""}
           aria-pressed="${selected}"
           data-treasure="${t.id}">
           <span class="name">${t.name}</span>
-          <span class="mark">${locked ? "未解放" : t.hint}</span>
+          <span class="mark">${locked ? "未解放" : "使用可"}</span>
         </button>`;
     })
     .join("");
