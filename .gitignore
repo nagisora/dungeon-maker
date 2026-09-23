@@ -4,3 +4,7 @@ dist
 .wrangler
 .DS_Store
 *.local
+.env
+.env.*
+!.env.example
+*.pem
