@@ -1,12 +1,12 @@
 :root {
   color-scheme: dark;
-  --bg: #0a0807;
-  --bg-mid: #14100d;
-  --stone: #1c1612;
-  --stone-2: #261e18;
-  --stone-3: #322820;
-  --line: #4a3b2c;
-  --line-dim: #2e241c;
+  --bg: #120e0b;
+  --bg-mid: #1b1510;
+  --stone: #2c221a;
+  --stone-2: #3a2c22;
+  --stone-3: #4a3a2c;
+  --line: #8a6d3b;
+  --line-dim: #5a4630;
   --text: #f0e6d2;
   --muted: #9a8770;
   --bone: #d8c4a0;
@@ -46,10 +46,10 @@ body {
 body {
   color: var(--text);
   background:
-    radial-gradient(900px 420px at 8% -8%, rgba(224, 112, 48, 0.16), transparent 55%),
-    radial-gradient(800px 380px at 100% 0%, rgba(107, 70, 193, 0.12), transparent 50%),
-    radial-gradient(1200px 700px at 50% 120%, rgba(0, 0, 0, 0.55), transparent 45%),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.015) 0 1px, transparent 1px 3px),
+    radial-gradient(900px 420px at 8% -8%, rgba(224, 112, 48, 0.28), transparent 55%),
+    radial-gradient(800px 380px at 100% 0%, rgba(107, 70, 193, 0.18), transparent 50%),
+    radial-gradient(1200px 700px at 50% 120%, rgba(0, 0, 0, 0.4), transparent 45%),
+    repeating-linear-gradient(0deg, rgba(255, 220, 160, 0.03) 0 1px, transparent 1px 3px),
     var(--bg);
 }
 
@@ -90,15 +90,15 @@ input {
 }
 
 .title-card {
-  width: min(40rem, 100%);
+  width: min(42rem, 100%);
   text-align: center;
   padding: 28px 22px 24px;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 22px;
   background:
-    linear-gradient(180deg, rgba(58, 42, 28, 0.35), transparent 40%),
+    linear-gradient(180deg, rgba(255, 196, 110, 0.12), transparent 42%),
     var(--stone);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), 0 0 0 1px #1a120c;
 }
 
 .tag {
@@ -168,10 +168,14 @@ h1,
 .showcase {
   display: grid;
   grid-template-columns: repeat(5, var(--tile));
-  gap: 4px;
-  --tile: clamp(44px, 12vw, 58px);
+  gap: 5px;
+  --tile: clamp(52px, 13vw, 68px);
   width: max-content;
-  margin: 8px auto 20px;
+  margin: 10px auto 18px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #241910;
+  border: 2px solid #6a5238;
 }
 
 .top {
@@ -226,10 +230,10 @@ h1,
 }
 
 .panel {
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: var(--radius);
   background:
-    linear-gradient(180deg, rgba(255, 214, 130, 0.04), transparent 28%),
+    linear-gradient(180deg, rgba(255, 214, 130, 0.08), transparent 28%),
     var(--stone);
   padding: 14px;
   box-shadow: var(--shadow);
@@ -309,7 +313,7 @@ h1,
 .catalog-item {
   appearance: none;
   border: 1px solid var(--line);
-  background: var(--stone-2);
+  background: #463628;
   color: var(--text);
   border-radius: 12px;
   padding: 10px 8px;
@@ -371,18 +375,18 @@ h1,
 
 .board-wrap {
   overflow: auto;
-  padding: 8px 0 10px;
+  padding: 10px 8px 12px;
   border-radius: 16px;
   background:
-    radial-gradient(circle at 50% 0%, rgba(224, 112, 48, 0.08), transparent 50%),
-    #0d0b09;
-  border: 1px solid var(--line-dim);
+    radial-gradient(circle at 50% 10%, rgba(224, 112, 48, 0.16), transparent 50%),
+    #241910;
+  border: 2px solid #6a5238;
 }
 
 .board {
-  --tile: clamp(52px, calc((100vw - 64px) / var(--cols)), 76px);
+  --tile: clamp(56px, calc((100vw - 64px) / var(--cols)), 82px);
   display: grid;
-  gap: 5px;
+  gap: 6px;
   width: max-content;
   margin: 0 auto;
   grid-template-columns: repeat(var(--cols), var(--tile));
@@ -404,28 +408,32 @@ h1,
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 40%),
-    var(--path);
+    linear-gradient(180deg, rgba(255, 232, 180, 0.12), transparent 40%),
+    #6a5340;
 }
 
 .tile .pix {
-  width: 62%;
-  height: 62%;
+  width: 72%;
+  height: 72%;
   filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.45));
 }
 
 .tile.wall {
-  background:
-    repeating-linear-gradient(90deg, #1a1410 0 10px, #120e0c 10px 12px),
-    repeating-linear-gradient(0deg, #1a1410 0 9px, #0e0b09 9px 11px);
-  border-color: #0c0a08;
+  background: #4a3a2c;
+  border-color: #2a1e16;
   cursor: default;
+}
+
+.tile.wall .pix {
+  width: 100%;
+  height: 100%;
+  filter: none;
 }
 
 .tile.path {
   background:
-    linear-gradient(180deg, rgba(216, 196, 160, 0.08), transparent 42%),
-    repeating-linear-gradient(45deg, #4a3c2e 0 8px, #403428 8px 16px);
+    linear-gradient(180deg, rgba(255, 226, 170, 0.18), transparent 42%),
+    repeating-linear-gradient(45deg, #7a6248 0 8px, #5c4a36 8px 16px);
 }
 
 .tile.core {
@@ -815,7 +823,7 @@ button.btn:disabled {
   }
 
   .board {
-    --tile: clamp(48px, calc((100vw - 36px) / var(--cols)), 68px);
+    --tile: clamp(52px, calc((100vw - 28px) / var(--cols)), 72px);
     gap: 4px;
     padding: 6px;
   }

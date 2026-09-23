@@ -10,7 +10,7 @@ import {
 } from "./icons.js";
 
 test("pixel icons render as original SVG sprites", () => {
-  for (const name of ["copper", "chip", "minion", "thief", "core", "lock"]) {
+  for (const name of ["copper", "chip", "minion", "thief", "core", "lock", "wall"]) {
     const svg = icon(name);
     assert.match(svg, /^<svg /);
     assert.match(svg, /shape-rendering="crispEdges"/);

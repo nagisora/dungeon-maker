@@ -363,7 +363,7 @@ function showcaseTile(kind) {
                 ? icon("minion")
                 : kind === "path"
                   ? ""
-                  : "";
+                  : icon("wall");
   const extra =
     kind === "core"
       ? "core has-treasure"
@@ -566,7 +566,7 @@ function renderPlay() {
         (state.phase === "improve" && state.improveKind !== "expand" && cell && !blocked);
       const label = tileCaption(cell, ghost, hasTreasure, hasInvader);
       if (wall) {
-        return `<div class="tile wall" aria-hidden="true"></div>`;
+        return `<div class="tile wall" aria-hidden="true">${icon("wall")}</div>`;
       }
       return `
         <button class="${classes}" type="button"
